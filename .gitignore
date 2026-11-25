@@ -1,0 +1,4 @@
+training/text8
+training/*.model
+training/*.npy
+.DS_Store
