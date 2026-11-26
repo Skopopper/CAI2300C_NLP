@@ -1,5 +1,5 @@
 [build]
-  publish = "."
+  publish = "Module04_Unburden_AI"
 
 [[headers]]
   for = "/word2vec/model.json"
