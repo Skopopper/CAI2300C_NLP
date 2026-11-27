@@ -268,8 +268,9 @@
   });
 
   const map = L.map("map").setView([25.6, -80.45], 10);
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-    attribution: "© OpenStreetMap contributors © CARTO", subdomains: "abcd", maxZoom: 18 }).addTo(map);
+  const CARTO_KEY = "cb1_5gwx_1_aeb0dac5780fcd0336501cd9";   // locked to this site's address in the CARTO dashboard
+  L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=${CARTO_KEY}`, {
+    attribution: "© OpenStreetMap contributors © CARTO", maxZoom: 18 }).addTo(map);
   const areaLayer = L.layerGroup().addTo(map);
   let spot = { lat: 25.5970, lon: -80.3940 };
   const marker = L.circleMarker([spot.lat, spot.lon], { radius: 8, color: "#fff", weight: 2, fillColor: "#8a2a2f", fillOpacity: 1 }).addTo(map);
