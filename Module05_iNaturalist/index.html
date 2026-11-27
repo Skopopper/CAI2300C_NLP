@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Miami-Dade Wildlife Finder · CAI2300C Module 05</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root {
+    --slate: #1B2430; --slate-2: #232e3c; --oxblood: #6A1B1F; --oxblood-2: #8a2a2f;
+    --steel: #8FB3C4; --text: #e8edf1; --muted: #9aa8b4; --line: rgba(143,179,196,.18);
+    --glass: rgba(255,255,255,.04);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Inter, system-ui, sans-serif; color: var(--text); line-height: 1.55;
+         background: radial-gradient(1200px 600px at 10% -10%, #2a1a22 0%, transparent 60%), var(--slate); }
+  h1, h2, h3 { font-family: "DM Serif Display", Georgia, serif; font-weight: 400; margin: 0 0 .4em; }
+  h1 { font-size: clamp(2rem, 4vw, 2.8rem); }
+  h2 { font-size: 1.7rem; margin-top: 1.2em; }
+  a { color: var(--steel); }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 20px 60px; }
+  .lede { color: var(--muted); max-width: 70ch; margin: 0 0 20px; }
+  .card { background: var(--glass); border: 1px solid var(--line); border-radius: 14px; padding: 18px;
+          backdrop-filter: blur(8px); }
+  #map { height: 380px; border-radius: 12px; border: 1px solid var(--line); }
+  .tabs { display: flex; gap: 6px; margin: 16px 0 12px; flex-wrap: wrap; }
+  .tab { background: transparent; color: var(--text); border: 1px solid var(--line); border-radius: 999px;
+         padding: 8px 14px; font: inherit; cursor: pointer; }
+  .tab[aria-selected="true"] { background: var(--oxblood); border-color: var(--oxblood-2); }
+  .panel[hidden] { display: none; }
+  .controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; margin-bottom: 12px; }
+  label { display: flex; flex-direction: column; font-size: .85rem; color: var(--muted); gap: 4px; }
+  input, select { background: var(--slate-2); color: var(--text); border: 1px solid var(--line); border-radius: 8px;
+                  padding: 8px 10px; font: inherit; min-width: 120px; }
+  input[list] { min-width: 300px; }
+  button.go { background: var(--oxblood); color: #fff; border: 1px solid var(--oxblood-2); border-radius: 8px;
+              padding: 9px 16px; font: inherit; font-weight: 600; cursor: pointer; }
+  button.go:hover { background: var(--oxblood-2); }
+  .hint { color: var(--muted); font-size: .9rem; margin: 0 0 10px; }
+  .status { font-size: .9rem; color: var(--steel); margin: 6px 0 10px; min-height: 1.2em; }
+  .warn { color: #e6b35a; }
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 500; }
+  .bar { height: 8px; background: var(--steel); border-radius: 4px; }
+  .bars { display: grid; gap: 2px; align-items: end; height: 80px; margin: 6px 0 4px; }
+  .bars div { background: var(--steel); border-radius: 2px 2px 0 0; min-height: 1px; }
+  .bars div.off { background: rgba(143,179,196,.18); }
+  .axis { display: flex; justify-content: space-between; color: var(--muted); font-size: .75rem; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } input[list] { min-width: 220px; } }
+  canvas#heat { width: 100%; height: 260px; background: var(--slate-2); border-radius: 8px; }
+  .legend { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: .8rem; margin-top: 6px; }
+  .legend span.g { width: 120px; height: 8px; border-radius: 4px;
+                   background: linear-gradient(90deg, #1f2b36, #3f6f55, #8fd39f); }
+  ol.journey { padding-left: 1.2em; }
+  ol.journey li { margin: 0 0 14px; }
+  ol.journey b { color: var(--steel); font-weight: 600; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 12px 0; }
+  .stat { background: var(--glass); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .stat b { display: block; font-size: 1.4rem; font-family: "DM Serif Display", serif; color: var(--steel); }
+  .stat span { color: var(--muted); font-size: .82rem; }
+  footer { color: var(--muted); font-size: .85rem; margin-top: 40px; border-top: 1px solid var(--line); padding-top: 16px; }
+  .leaflet-container { background: #1a2129; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Miami-Dade Wildlife Finder</h1>
+  <p class="lede">A neural network trained on 147,878 iNaturalist sightings (Nov 2023 – Nov 2026) of 252 species in
+    Miami-Dade County. Click the map to pick a spot, then ask what's around, or where and when to find a species.
+    Everything runs in your browser.</p>
+
+  <section class="card" aria-label="App">
+    <div id="map" role="application" aria-label="Map of Miami-Dade; click to choose a spot"></div>
+    <p class="status" id="spot">Loading model…</p>
+
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="true" data-panel="p-here">What's here?</button>
+      <button class="tab" role="tab" aria-selected="false" data-panel="p-where">Where &amp; when for a species?</button>
+      <button class="tab" role="tab" aria-selected="false" data-panel="p-spot">When at this spot?</button>
+    </div>
+
+    <div class="panel" id="p-here">
+      <p class="hint">Species that are near their own best time at the spot you clicked: not just the most common ones.</p>
+      <div class="controls">
+        <label>Date<input type="date" id="here-date"></label>
+        <label>Hour<select id="here-hour"></select></label>
+        <button class="go" id="here-go">Find species</button>
+      </div>
+      <p class="status" id="here-status"></p>
+      <div id="here-out"></div>
+    </div>
+
+    <div class="panel" id="p-where" hidden>
+      <p class="hint">Best areas (shown on the map), best weeks and best hours for one species.</p>
+      <div class="controls">
+        <label>Species<input list="species-list" id="where-sp" placeholder="e.g. Turkey Vulture"></label>
+        <button class="go" id="where-go">Show</button>
+      </div>
+      <p class="status" id="where-status"></p>
+      <div id="where-out"></div>
+    </div>
+
+    <div class="panel" id="p-spot" hidden>
+      <p class="hint">For the spot you clicked: which weeks and hours are best for one species.</p>
+      <div class="controls">
+        <label>Species<input list="species-list" id="spot-sp" placeholder="e.g. Northern Cardinal"></label>
+        <button class="go" id="spot-go">Show</button>
+      </div>
+      <p class="status" id="spot-status"></p>
+      <div id="spot-out"></div>
+    </div>
+    <datalist id="species-list"></datalist>
+  </section>
+
+  <h2>How we got here</h2>
+  <p class="lede">This started as the class's Miami-housing regression recipe. Getting from there to a useful wildlife
+    finder took a few wrong turns, which are worth more than the final numbers.</p>
+
+  <div class="stats">
+    <div class="stat"><b>147,878</b><span>sightings used</span></div>
+    <div class="stat"><b>252</b><span>species (≥200 sightings each)</span></div>
+    <div class="stat"><b>42%</b><span>real species in model's top 10 (random: 4%)</span></div>
+    <div class="stat"><b>10%</b><span>exact top-1 guess (baseline: 3%)</span></div>
+  </div>
+
+  <ol class="journey">
+    <li><b>Picking data.</b> The assignment was a neural network on a new dataset. I wanted current data, not a
+      15-year-old classic, and something I'd actually use. I use the Seek app, so: iNaturalist.</li>
+    <li><b>Pulling it.</b> iNaturalist's public API, Miami-Dade County, research-grade and wild only. Five years was
+      362,699 sightings, too big for a GitHub upload, so I used three: 238,475 sightings, about an hour of polite
+      paging at one request per second.</li>
+    <li><b>Cleaning.</b> Kept species-level IDs with a location and exact time, converted to Miami local time, and
+      reduced each sighting to latitude, longitude, week of year and hour. A cutoff of ≥50 sightings left 737
+      species; raising it to ≥200 left 252, a better fit for a small network.</li>
+    <li><b>Training the class recipe.</b> Target = species, inputs = place and time. The recipe's 64/32 network
+      scored 9% against a 3% baseline (always guess the Peters's rock agama). A 256/128 network reached 10.1%
+      and started to overfit. Colab's free GPU quota ran out along the way, so that run trained on a CPU.</li>
+    <li><b>The rethink.</b> 10% looked useless, but it measured the wrong thing. At any spot and hour dozens of
+      species are seen, so naming the one exact species is mostly impossible from place and time alone. An app
+      gives a <em>list</em>. Graded that way, the real species is in the top 10 guesses 42% of the time and in
+      the top 20 57% of the time, about 10× better than chance.</li>
+    <li><b>"Most likely" vs "near its own peak".</b> A list of the most likely species is always the same common
+      lizards and birds. What I actually wanted: species that are near <em>their own</em> best time at this place.
+      The model's output is each species' share of sightings at a place and time (like eBird's frequency charts),
+      so each species is compared against its own best time at that spot. A "place score" keeps out species that
+      barely occur there.</li>
+    <li><b>Fixing artifacts.</b> The first version returned nothing (I compared against each species' single best
+      square in the whole county). Then single noisy night hours inflated the peaks, so peaks became the 90th
+      percentile instead of the maximum. Black vultures showed up at 3 AM, so now an hour only counts if that
+      species really was seen then. A spot where a species is almost never recorded now gets an honest "rarely
+      recorded here" instead of a confident-looking chart of noise.</li>
+    <li><b>Sanity checks.</b> At Larry &amp; Penny Thompson Park on an early-March morning: cardinals, mockingbirds,
+      blue jays, grebes, saw palmetto. Same spot at 10 PM: cane toads, Cuban tree frogs, geckos and snails.
+      Turkey vultures come out as an October–March visitor; black vultures as year-round residents; Cuban brown
+      snails as night animals that peak in the wet season.</li>
+  </ol>
+
+  <h3>Limits</h3>
+  <p class="lede">These are photo sightings, not surveys: they show where people looked as much as where animals
+    are. For plants, "best hour" just means when people photograph them. Areas are ~3 km squares, so a single
+    pond or trail can't be told apart from its surroundings. Squares with fewer than 20 real sightings are marked
+    low confidence.</p>
+
+  <footer>
+    CAI2300C · Module 05 · Miami Dade College. Data: research-grade observations by iNaturalist contributors via the
+    <a href="https://api.inaturalist.org/v1/docs/">iNaturalist API</a>. Map tiles © OpenStreetMap contributors © CARTO.
+    Model: Keras, 4 inputs → 256 → 128 → 252 species, trained in Google Colab; weights exported and run here in plain JavaScript.
+  </footer>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(async function () {
+  const $ = id => document.getElementById(id);
+  const D = await fetch("inat_app_data.json").then(r => r.json());
+
+  // ---- the network, in plain JS ----
+  const flat = m => Float32Array.from(m.flat());
+  const layers = [];
+  for (let i = 0; i < D.weights.length; i += 2) {
+    layers.push({ W: flat(D.weights[i]), b: Float32Array.from(D.weights[i + 1]),
+             nin: D.weights[i].length, nout: D.weights[i + 1].length });
+  }
+  const NS = D.species.length;
+  const col = name => D.columns.indexOf(name);
+  function forward(lat, lon, week, hour) {
+    const raw = [];
+    raw[col("latitude")] = lat; raw[col("longitude")] = lon; raw[col("week")] = week; raw[col("hour")] = hour;
+    let x = Float32Array.from(raw.map((v, i) => (v - D.mean[i]) / D.scale[i]));
+    layers.forEach((l, n) => {
+      const y = new Float32Array(l.nout);
+      for (let o = 0; o < l.nout; o++) y[o] = l.b[o];
+      for (let i = 0; i < l.nin; i++) {
+        const xi = x[i]; if (xi === 0) continue;
+        const row = i * l.nout;
+        for (let o = 0; o < l.nout; o++) y[o] += xi * l.W[row + o];
+      }
+      if (n < layers.length - 1) for (let o = 0; o < l.nout; o++) if (y[o] < 0) y[o] = 0;
+      x = y;
+    });
+    let m = -Infinity; for (const v of x) if (v > m) m = v;
+    let s = 0; for (let o = 0; o < NS; o++) { x[o] = Math.exp(x[o] - m); s += x[o]; }
+    for (let o = 0; o < NS; o++) x[o] /= s;
+    return x;
+  }
+
+  if (D.check) {   // compare the JS network against the probabilities Keras produced in Colab
+    let diff = 0;
+    D.check.inputs.forEach((x, n) => {
+      const p = forward(...["latitude", "longitude", "week", "hour"].map(c => x[D.columns.indexOf(c)]));
+      D.check.probs[n].forEach((q, s) => diff = Math.max(diff, Math.abs(q - p[s])));
+    });
+    console.log("Model check · largest difference vs Keras:", diff.toExponential(2));
+  }
+
+  // ---- grid helpers ----
+  const G = D.grid, cells = D.cells.map(([i, j, n, c]) => ({
+    i, j, n, conf: !!c, lat: G.lat0 + (i + 0.5) * G.step, lon: G.lon0 + (j + 0.5) * G.step }));
+  const byIJ = new Map(cells.map((c, k) => [c.i + "," + c.j, k]));
+  function nearestCell(lat, lon) {
+    const key = Math.floor((lat - G.lat0) / G.step) + "," + Math.floor((lon - G.lon0) / G.step);
+    if (byIJ.has(key)) return byIJ.get(key);
+    let best = 0, bd = Infinity;
+    cells.forEach((c, k) => { const d = (c.lat - lat) ** 2 + (c.lon - lon) ** 2; if (d < bd) { bd = d; best = k; } });
+    return best;
+  }
+  const ratio = (k, s) => D.local_ratio[k][s] / 1000;                 // this square's best time vs best square
+  const localPeak = (k, s) => ratio(k, s) * D.place_peak[s];
+  function isoWeek(d) {
+    const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day);
+    const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+    return Math.min(52, Math.ceil(((t - y0) / 864e5 + 1) / 7));
+  }
+  function weekLabel(w) {
+    const jan4 = new Date(Date.UTC(2026, 0, 4)), mon = new Date(jan4);
+    mon.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() || 7) - 1) + (w - 1) * 7);
+    return mon.toLocaleDateString("en-US", { month: "short", day: "2-digit", timeZone: "UTC" });
+  }
+  const hourLabel = h => `${h}:00`;
+  function ranges(nums, label) {
+    const out = []; let i = 0;
+    while (i < nums.length) { let j = i; while (j + 1 < nums.length && nums[j + 1] === nums[j] + 1) j++;
+      out.push(i === j ? label(nums[i]) : `${label(nums[i])} – ${label(nums[j])}`); i = j + 1; }
+    return out.join(", ") || "none";
+  }
+  function findSpecies(text) {
+    const t = text.trim().toLowerCase(); if (!t) return -1;
+    const exact = D.species.findIndex(n => n.toLowerCase() === t);
+    return exact >= 0 ? exact : D.species.findIndex(n => n.toLowerCase().includes(t));
+  }
+  const bars = (vals, on, n) => `<div class="bars" style="grid-template-columns:repeat(${n},1fr)">` +
+    vals.map((v, i) => `<div class="${on[i] ? "" : "off"}" style="height:${Math.max(1, v)}%"></div>`).join("") + "</div>";
+
+  // ---- UI setup ----
+  $("species-list").innerHTML = D.species.map(n => `<option value="${n}">`).join("");
+  $("here-hour").innerHTML = [...Array(24).keys()].map(h => `<option value="${h}">${hourLabel(h)}</option>`).join("");
+  const now = new Date(); $("here-date").valueAsDate = now; $("here-hour").value = Math.min(18, Math.max(7, now.getHours()));
+  document.querySelectorAll(".tab").forEach(b => b.onclick = () => {
+    document.querySelectorAll(".tab").forEach(x => x.setAttribute("aria-selected", x === b));
+    document.querySelectorAll(".panel").forEach(p => p.hidden = p.id !== b.dataset.panel);
+    areaLayer.clearLayers();
+  });
+
+  const map = L.map("map").setView([25.6, -80.45], 10);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+    attribution: "© OpenStreetMap contributors © CARTO", subdomains: "abcd", maxZoom: 18 }).addTo(map);
+  const areaLayer = L.layerGroup().addTo(map);
+  let spot = { lat: 25.5970, lon: -80.3940 };
+  const marker = L.circleMarker([spot.lat, spot.lon], { radius: 8, color: "#fff", weight: 2, fillColor: "#8a2a2f", fillOpacity: 1 }).addTo(map);
+  function showSpot() {
+    const c = cells[nearestCell(spot.lat, spot.lon)];
+    $("spot").innerHTML = `Spot: ${spot.lat.toFixed(4)}, ${spot.lon.toFixed(4)} · its ~3 km square has ${c.n.toLocaleString()} sightings` +
+      (c.conf ? "" : ` <span class="warn">(low confidence)</span>`);
+  }
+  map.on("click", e => { spot = { lat: e.latlng.lat, lon: e.latlng.lng }; marker.setLatLng(e.latlng); showSpot(); });
+  showSpot();
+
+  // ---- What's here? ----
+  $("here-go").onclick = () => {
+    const d = $("here-date").valueAsDate || new Date(), week = isoWeek(d), hour = +$("here-hour").value;
+    const k = nearestCell(spot.lat, spot.lon), c = cells[k], p = forward(c.lat, c.lon, week, hour);
+    const rows = [];
+    for (let s = 0; s < NS; s++) {
+      const lp = localPeak(k, s); if (lp <= 0) continue;
+      const when = Math.min(1, p[s] / lp), place = ratio(k, s);
+      if (when >= D.thresh && place >= D.place_min && D.seen_hour[s][hour]) rows.push({ s, when, place: Math.min(1, place) });
+    }
+    rows.sort((a, b) => b.when - a.when);
+    $("here-status").innerHTML = `Week ${week} (~${weekLabel(week)}), ${hourLabel(hour)} · ${rows.length} species` +
+      (c.conf ? "" : ` <span class="warn">· low confidence: few real sightings here</span>`);
+    $("here-out").innerHTML = rows.length ? `<table><thead><tr><th>Species</th><th>vs its best time here</th><th>Place score</th></tr></thead><tbody>` +
+      rows.map(r => `<tr><td>${D.species[r.s]}</td><td><div class="bar" style="width:${Math.round(r.when * 100)}%"></div></td><td>${Math.round(r.place * 100)}%</td></tr>`).join("") +
+      "</tbody></table>" : "<p class='hint'>Nothing near its peak here at that time. Try another hour or week.</p>";
+  };
+
+  // ---- Where & when for a species? ----
+  $("where-go").onclick = () => {
+    const s = findSpecies($("where-sp").value);
+    if (s < 0) { $("where-status").textContent = "No species matches that name."; $("where-out").innerHTML = ""; return; }
+    $("where-sp").value = D.species[s];
+    const top = cells.map((c, k) => ({ k, v: c.conf ? ratio(k, s) : -1 })).sort((a, b) => b.v - a.v).slice(0, 10);
+    const maxv = top[0].v || 1;
+    areaLayer.clearLayers();
+    top.forEach(({ k, v }, r) => {
+      const c = cells[k], h = G.step / 2;
+      L.rectangle([[c.lat - h, c.lon - h], [c.lat + h, c.lon + h]], { color: "#8FB3C4", weight: 1,
+        fillColor: "#8a2a2f", fillOpacity: 0.25 + 0.55 * v / maxv }).bindTooltip(`#${r + 1} · ${Math.round(100 * Math.min(1, v / maxv))}%`).addTo(areaLayer);
+    });
+    map.fitBounds(areaLayer.getLayers().map(l => l.getBounds()).reduce((a, b) => a.extend(b)), { padding: [30, 30] });
+    const wk = D.by_week[s], hr = D.by_hour[s];
+    const goodW = wk.map(v => v >= D.thresh * 100), goodH = hr.map(v => v >= D.thresh * 100);
+    $("where-status").textContent = `${D.species[s]} · top 10 areas outlined on the map (darker = better)`;
+    $("where-out").innerHTML = `<div class="grid2"><div><h3>Best weeks</h3>${bars(wk, goodW, 52)}
+      <div class="axis"><span>Jan</span><span>Apr</span><span>Jul</span><span>Oct</span><span>Dec</span></div>
+      <p class="hint">${ranges([...Array(52).keys()].filter(i => goodW[i]).map(i => i + 1), weekLabel)}</p></div>
+      <div><h3>Best hours</h3>${bars(hr, goodH, 24)}
+      <div class="axis"><span>0:00</span><span>6:00</span><span>12:00</span><span>18:00</span><span>23:00</span></div>
+      <p class="hint">${ranges([...Array(24).keys()].filter(i => goodH[i]), hourLabel)}</p></div></div>`;
+  };
+
+  // ---- When at this spot? ----
+  $("spot-go").onclick = () => {
+    const s = findSpecies($("spot-sp").value);
+    if (s < 0) { $("spot-status").textContent = "No species matches that name."; $("spot-out").innerHTML = ""; return; }
+    $("spot-sp").value = D.species[s];
+    const k = nearestCell(spot.lat, spot.lon), c = cells[k], place = Math.min(1, ratio(k, s));
+    if (place < D.place_min) {
+      $("spot-status").innerHTML = `${D.species[s]} is rarely recorded here (place score ${Math.round(place * 100)}%). Try “Where &amp; when” to see where it's found.`;
+      $("spot-out").innerHTML = ""; return;
+    }
+    const lp = localPeak(k, s), heat = [];
+    for (let w = 1; w <= 52; w++) { const row = [];
+      for (let h = 0; h < 24; h++) row.push(D.seen_hour[s][h] ? Math.min(1, forward(c.lat, c.lon, w, h)[s] / lp) : null);
+      heat.push(row); }
+    const mean = a => { const v = a.filter(x => x !== null); return v.length ? v.reduce((p, q) => p + q, 0) / v.length : null; };
+    const wk = heat.map(mean), hr = [...Array(24).keys()].map(h => mean(heat.map(r => r[h])));
+    const mw = Math.max(...wk.filter(x => x !== null)), mh = Math.max(...hr.filter(x => x !== null));
+    const goodW = wk.map((v, i) => v !== null && v / mw >= D.thresh).map((g, i) => g ? i + 1 : 0).filter(Boolean);
+    const goodH = hr.map((v, h) => v !== null && v / mh >= D.thresh ? h : -1).filter(h => h >= 0);
+    $("spot-status").innerHTML = `${D.species[s]} · place score ${Math.round(place * 100)}%` + (c.conf ? "" : ` <span class="warn">(low confidence)</span>`);
+    $("spot-out").innerHTML = `<canvas id="heat" width="1040" height="480"></canvas>
+      <div class="legend"><span>low</span><span class="g"></span><span>its best time here</span> · blank rows = hours it was never really seen</div>
+      <p class="hint"><b>Good weeks:</b> ${ranges(goodW, weekLabel)}<br><b>Good hours:</b> ${ranges(goodH, hourLabel)}</p>`;
+    const cv = $("heat"), ctx = cv.getContext("2d"), padL = 50, padB = 36, W = cv.width - padL - 10, H = cv.height - padB - 10;
+    ctx.fillStyle = "#232e3c"; ctx.fillRect(0, 0, cv.width, cv.height);
+    const colr = v => { const a = [31, 43, 54], b = [63, 111, 85], z = [143, 211, 159];
+      const t = v < .5 ? v / .5 : (v - .5) / .5, p = v < .5 ? a : b, q = v < .5 ? b : z;
+      return `rgb(${p.map((x, i) => Math.round(x + (q[i] - x) * t)).join(",")})`; };
+    heat.forEach((row, w) => row.forEach((v, h) => { if (v === null) return;
+      ctx.fillStyle = colr(v); ctx.fillRect(padL + w * W / 52, 10 + (23 - h) * H / 24, W / 52 + 1, H / 24 + 1); }));
+    ctx.fillStyle = "#9aa8b4"; ctx.font = "22px Inter, sans-serif";
+    [0, 6, 12, 18, 23].forEach(h => ctx.fillText(hourLabel(h), 0, 18 + (23 - h) * H / 24 + H / 48));
+    [1, 13, 26, 39].forEach(w => ctx.fillText(weekLabel(w), padL + (w - 1) * W / 52, cv.height - 8));
+    ctx.textAlign = "right"; ctx.fillText(weekLabel(52), cv.width - 6, cv.height - 8);
+  };
+
+})().catch(err => {
+  document.getElementById("spot").textContent = "Couldn't load the model data: " + err.message;
+});
+</script>
+</body>
+</html>
