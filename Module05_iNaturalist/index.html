@@ -163,7 +163,7 @@
     <li><b>"Most likely" vs "near its own peak".</b> A list of the most likely species is always the same common
       lizards and birds. What I actually wanted: species that are near <em>their own</em> best time at this place.
       The model's output is each species' share of sightings at a place and time (like eBird's frequency charts),
-      so each species is compared against its own best time at that spot. A "place score" keeps out species that
+      so each species is compared against its own best time at that spot. A "location score" keeps out species that
       barely occur there.</li>
     <li><b>Fixing artifacts.</b> The first version returned nothing (I compared against each species' single best
       square in the whole county). Then single noisy night hours inflated the peaks, so peaks became the 90th
@@ -325,7 +325,7 @@
     rows.sort((a, b) => b.when - a.when);
     $("here-status").innerHTML = `Week ${week} (~${weekLabel(week)}), ${hourLabel(hour)} · ${rows.length} species` +
       (c.conf ? "" : ` <span class="warn">· low confidence: few real sightings here</span>`);
-    $("here-out").innerHTML = rows.length ? `<table><thead><tr><th>Species</th><th>vs its best time here</th><th>Place score</th></tr></thead><tbody>` +
+    $("here-out").innerHTML = rows.length ? `<table><thead><tr><th>Species</th><th>Time score</th><th>Location score</th></tr></thead><tbody>` +
       rows.map(r => `<tr><td>${D.species[r.s]}</td><td><div class="bar" style="width:${Math.round(r.when * 100)}%"></div></td><td>${Math.round(r.place * 100)}%</td></tr>`).join("") +
       "</tbody></table>" : "<p class='hint'>Nothing near its peak here at that time. Try another hour or week.</p>";
   };
@@ -362,7 +362,7 @@
     $("spot-sp").value = D.species[s];
     const k = nearestCell(spot.lat, spot.lon), c = cells[k], place = Math.min(1, ratio(k, s));
     if (place < D.place_min) {
-      $("spot-status").innerHTML = `${D.species[s]} is rarely recorded here (place score ${Math.round(place * 100)}%). Try “Where &amp; when” to see where it's found.`;
+      $("spot-status").innerHTML = `${D.species[s]} is rarely recorded here (location score ${Math.round(place * 100)}%). Try “Where &amp; when” to see where it's found.`;
       $("spot-out").innerHTML = ""; return;
     }
     const lp = localPeak(k, s), heat = [];
@@ -374,7 +374,7 @@
     const mw = Math.max(...wk.filter(x => x !== null)), mh = Math.max(...hr.filter(x => x !== null));
     const goodW = wk.map((v, i) => v !== null && v / mw >= D.thresh).map((g, i) => g ? i + 1 : 0).filter(Boolean);
     const goodH = hr.map((v, h) => v !== null && v / mh >= D.thresh ? h : -1).filter(h => h >= 0);
-    $("spot-status").innerHTML = `${D.species[s]} · place score ${Math.round(place * 100)}%` + (c.conf ? "" : ` <span class="warn">(low confidence)</span>`);
+    $("spot-status").innerHTML = `${D.species[s]} · location score ${Math.round(place * 100)}%` + (c.conf ? "" : ` <span class="warn">(low confidence)</span>`);
     $("spot-out").innerHTML = `<canvas id="heat" width="1040" height="480"></canvas>
       <div class="legend"><span>low</span><span class="g"></span><span>its best time here</span> · blank rows = hours it was never really seen</div>
       <p class="hint"><b>Good weeks:</b> ${ranges(goodW, weekLabel)}<br><b>Good hours:</b> ${ranges(goodH, hourLabel)}</p>`;
