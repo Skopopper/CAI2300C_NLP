@@ -12,52 +12,74 @@
 </script>
 <style>
   :root {                       /* light: muted green + deep burgundy */
-    --bg: #e8eee5; --bg-glow: #d3dfcd; --field: #f7faf5; --accent: #6b1f2a; --accent-2: #8a2a38;
+    --bg: #dfe9da; --bg-glow: #d3dfcd; --field: #f7faf5; --accent: #6b1f2a; --accent-2: #8a2a38;
     --data: #5b7b62; --data-soft: rgba(91,123,98,.22); --text: #1f2a22; --muted: #5c6b60;
-    --line: rgba(70,99,77,.24); --glass: rgba(255,255,255,.6); --warn: #9a5800; --map-bg: #dfe6dc;
+    --line: rgba(70,99,77,.22); --glass: rgba(255,255,255,.42); --glass-border: rgba(255,255,255,.75);
+    --shadow: 0 10px 34px rgba(47,77,55,.14); --warn: #9a5800; --map-bg: #dfe6dc;
+    --blob-green: rgba(80,140,98,.55); --blob-green2: rgba(118,172,122,.62); --blob-burg: rgba(140,36,56,.30);
+    --bar-time: #4f7a5a; --bar-loc: #8a2a38; --track: rgba(70,99,77,.14);
     --heat-lo: #eef2eb; --heat-mid: #9bb8a0; --heat-hi: #2f4d37; --canvas-text: #5c6b60; --highlight: #6b1f2a;
   }
   [data-theme="dark"] {         /* dark: the original slate + oxblood */
     --bg: #1B2430; --bg-glow: #2a1a22; --field: #232e3c; --accent: #6A1B1F; --accent-2: #8a2a2f;
     --data: #8FB3C4; --data-soft: rgba(143,179,196,.18); --text: #e8edf1; --muted: #9aa8b4;
-    --line: rgba(143,179,196,.18); --glass: rgba(255,255,255,.04); --warn: #e6b35a; --map-bg: #1a2129;
+    --line: rgba(143,179,196,.16); --glass: rgba(255,255,255,.05); --glass-border: rgba(255,255,255,.09);
+    --shadow: 0 10px 34px rgba(0,0,0,.35); --warn: #e6b35a; --map-bg: #1a2129;
+    --blob-green: rgba(63,120,85,.32); --blob-green2: rgba(63,111,85,.22); --blob-burg: rgba(150,40,52,.34);
+    --bar-time: #7fc49a; --bar-loc: #d07a85; --track: rgba(255,255,255,.07);
     --heat-lo: #1f2b36; --heat-mid: #3f6f55; --heat-hi: #8fd39f; --canvas-text: #9aa8b4; --highlight: #8FB3C4;
   }
   * { box-sizing: border-box; }
   body { margin: 0; font-family: Inter, system-ui, sans-serif; color: var(--text); line-height: 1.55;
-         background: radial-gradient(1200px 600px at 10% -10%, var(--bg-glow) 0%, transparent 60%), var(--bg); }
+         background:
+           radial-gradient(900px 620px at -5% -5%, var(--blob-green2), transparent 62%),
+           radial-gradient(720px 520px at 105% 8%, var(--blob-burg), transparent 60%),
+           radial-gradient(900px 720px at 85% 95%, var(--blob-green), transparent 62%),
+           radial-gradient(620px 520px at 5% 85%, var(--blob-burg), transparent 65%),
+           var(--bg);
+         background-attachment: fixed; min-height: 100vh; }
   h1, h2, h3 { font-family: "DM Serif Display", Georgia, serif; font-weight: 400; margin: 0 0 .4em; }
   h1 { font-size: clamp(2rem, 4vw, 2.8rem); }
   h2 { font-size: 1.7rem; margin-top: 1.2em; }
   a { color: var(--data); }
   header { display: flex; justify-content: space-between; align-items: start; gap: 16px; }
-  #theme { background: var(--glass); color: var(--text); border: 1px solid var(--line); border-radius: 999px;
+  #theme { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--text);
+           border: 1px solid color-mix(in srgb, var(--accent-2) 45%, transparent); border-radius: 999px;
+           backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 4px 18px var(--blob-burg);
            padding: 7px 14px; font: inherit; font-size: .9rem; cursor: pointer; white-space: nowrap; margin-top: 10px; }
   .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 20px 60px; }
   .lede { color: var(--muted); max-width: 70ch; margin: 0 0 20px; }
-  .card { background: var(--glass); border: 1px solid var(--line); border-radius: 14px; padding: 18px;
-          backdrop-filter: blur(8px); }
+  .card { background: var(--glass); border: 1px solid var(--glass-border); border-radius: 18px; padding: 18px;
+          backdrop-filter: blur(18px) saturate(140%); -webkit-backdrop-filter: blur(18px) saturate(140%); box-shadow: var(--shadow); }
   #map { height: 380px; border-radius: 12px; border: 1px solid var(--line); }
   .tabs { display: flex; gap: 6px; margin: 16px 0 12px; flex-wrap: wrap; }
-  .tab { background: transparent; color: var(--text); border: 1px solid var(--line); border-radius: 999px;
+  .tab { background: var(--glass); color: var(--text); border: 1px solid var(--glass-border); border-radius: 999px;
+         backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
          padding: 8px 14px; font: inherit; cursor: pointer; }
-  .tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent-2); color: #fff; }
+  .tab[aria-selected="true"] { background: linear-gradient(135deg, var(--accent-2), var(--accent)); border-color: var(--accent-2);
+         color: #fff; box-shadow: 0 4px 18px var(--blob-burg); }
   .panel[hidden] { display: none; }
   .controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; margin-bottom: 12px; }
   label { display: flex; flex-direction: column; font-size: .85rem; color: var(--muted); gap: 4px; }
-  input, select { background: var(--field); color: var(--text); border: 1px solid var(--line); border-radius: 8px;
+  input, select { background: color-mix(in srgb, var(--field) 70%, transparent); color: var(--text); border: 1px solid var(--glass-border); border-radius: 8px;
                   padding: 8px 10px; font: inherit; min-width: 120px; }
   input[list] { min-width: 300px; }
-  button.go { background: var(--accent); color: #fff; border: 1px solid var(--accent-2); border-radius: 8px;
+  button.go { background: linear-gradient(135deg, var(--accent-2), var(--accent)); color: #fff; border: 1px solid var(--accent-2);
+              box-shadow: 0 4px 18px var(--blob-burg); border-radius: 8px;
               padding: 9px 16px; font: inherit; font-weight: 600; cursor: pointer; }
-  button.go:hover { background: var(--accent-2); }
+  button.go:hover { filter: brightness(1.12); box-shadow: 0 6px 24px var(--blob-burg); }
   .hint { color: var(--muted); font-size: .9rem; margin: 0 0 10px; }
   .status { font-size: .9rem; color: var(--data); margin: 6px 0 10px; min-height: 1.2em; }
   .warn { color: var(--warn); }
   table { width: 100%; border-collapse: collapse; font-size: .92rem; }
   th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
   th { color: var(--muted); font-weight: 500; }
-  .bar { height: 8px; background: var(--data); border-radius: 4px; }
+  .meter { display: flex; align-items: center; gap: 8px; }
+  .meter .track { flex: 1; height: 8px; background: var(--track); border-radius: 4px; overflow: hidden; min-width: 60px; }
+  .meter .fill { height: 100%; border-radius: 4px; }
+  .meter .fill.t { background: var(--bar-time); }
+  .meter .fill.l { background: var(--bar-loc); }
+  .meter span { width: 3.2em; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); font-size: .85rem; }
   .bars { display: grid; gap: 2px; align-items: end; height: 80px; margin: 6px 0 4px; }
   .bars div { background: var(--data); border-radius: 2px 2px 0 0; min-height: 1px; }
   .bars div.off { background: var(--data-soft); }
@@ -72,7 +94,8 @@
   ol.journey li { margin: 0 0 14px; }
   ol.journey b { color: var(--highlight); font-weight: 600; }
   .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 12px 0; }
-  .stat { background: var(--glass); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .stat { background: var(--glass); border: 1px solid var(--glass-border); border-radius: 14px; padding: 12px 14px;
+          backdrop-filter: blur(14px) saturate(140%); -webkit-backdrop-filter: blur(14px) saturate(140%); box-shadow: var(--shadow); }
   .stat b { display: block; font-size: 1.4rem; font-family: "DM Serif Display", serif; color: var(--highlight); }
   .stat span { color: var(--muted); font-size: .82rem; }
   footer { color: var(--muted); font-size: .85rem; margin-top: 40px; border-top: 1px solid var(--line); padding-top: 16px; }
@@ -270,6 +293,7 @@
     const exact = D.species.findIndex(n => n.toLowerCase() === t);
     return exact >= 0 ? exact : D.species.findIndex(n => n.toLowerCase().includes(t));
   }
+  const meter = (v, k) => `<div class="meter"><div class="track"><div class="fill ${k}" style="width:${Math.round(v * 100)}%"></div></div><span>${Math.round(v * 100)}%</span></div>`;
   const bars = (vals, on, n) => `<div class="bars" style="grid-template-columns:repeat(${n},1fr)">` +
     vals.map((v, i) => `<div class="${on[i] ? "" : "off"}" style="height:${Math.max(1, v)}%"></div>`).join("") + "</div>";
 
@@ -325,8 +349,8 @@
     rows.sort((a, b) => b.when - a.when);
     $("here-status").innerHTML = `Week ${week} (~${weekLabel(week)}), ${hourLabel(hour)} · ${rows.length} species` +
       (c.conf ? "" : ` <span class="warn">· low confidence: few real sightings here</span>`);
-    $("here-out").innerHTML = rows.length ? `<table><thead><tr><th>Species</th><th>Time score</th><th>Location score</th></tr></thead><tbody>` +
-      rows.map(r => `<tr><td>${D.species[r.s]}</td><td><div class="bar" style="width:${Math.round(r.when * 100)}%"></div></td><td>${Math.round(r.place * 100)}%</td></tr>`).join("") +
+    $("here-out").innerHTML = rows.length ? `<table><thead><tr><th>Species</th><th style="width:28%">Time score</th><th style="width:28%">Location score</th></tr></thead><tbody>` +
+      rows.map(r => `<tr><td>${D.species[r.s]}</td><td>${meter(r.when, "t")}</td><td>${meter(r.place, "l")}</td></tr>`).join("") +
       "</tbody></table>" : "<p class='hint'>Nothing near its peak here at that time. Try another hour or week.</p>";
   };
 
